@@ -1,0 +1,101 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+// Prepare text: convert to uppercase and remove non-alphabetic characters
+void prepareText(char *text) {
+    int i, j = 0;
+    for (i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            text[j++] = toupper(text[i]);
+        }
+    }
+    text[j] = '\0';
+}
+
+// Encrypt using Autokey Cipher
+void autokeyEncrypt(char *plaintext, char *keyword, char *ciphertext) {
+    int textLen = strlen(plaintext);
+    int keyLen = strlen(keyword);
+    char fullKey[textLen + 1];
+
+    // Build full key: keyword + plaintext (trim to needed length)
+    strncpy(fullKey, keyword, keyLen);
+    strncpy(fullKey + keyLen, plaintext, textLen - keyLen);
+    fullKey[textLen] = '\0';
+
+    for (int i = 0; i < textLen; i++) {
+        int p = plaintext[i] - 'A';
+        int k = fullKey[i] - 'A';
+        ciphertext[i] = ((p + k) % 26) + 'A';
+    }
+    ciphertext[textLen] = '\0';
+}
+
+// Decrypt using Autokey Cipher
+void autokeyDecrypt(char *ciphertext, char *keyword, char *plaintext) {
+    int textLen = strlen(ciphertext);
+    int keyLen = strlen(keyword);
+    char fullKey[textLen + 1];
+
+    // Start fullKey with keyword
+    strncpy(fullKey, keyword, keyLen);
+
+    for (int i = 0; i < textLen; i++) {
+        int k;
+        if (i < keyLen) {
+            k = fullKey[i] - 'A';
+        } else {
+            k = plaintext[i - keyLen] - 'A'; // use already-decrypted text
+            fullKey[i] = plaintext[i - keyLen];
+        }
+
+        int c = ciphertext[i] - 'A';
+        int p = (c - k + 26) % 26;
+        plaintext[i] = p + 'A';
+    }
+    plaintext[textLen] = '\0';
+}
+
+int main() {
+    char text[1000];
+    char key[100];
+    char result[1000];
+    int choice;
+
+    printf("Autokey Cipher\n");
+    printf("1. Encrypt\n");
+    printf("2. Decrypt\n");
+    printf("Enter your choice (1 or 2): ");
+    scanf("%d", &choice);
+    getchar(); // Consume newline
+
+    printf("Enter text: ");
+    fgets(text, sizeof(text), stdin);
+    text[strcspn(text, "\n")] = '\0';
+
+    printf("Enter keyword: ");
+    fgets(key, sizeof(key), stdin);
+    key[strcspn(key, "\n")] = '\0';
+
+    prepareText(text);
+    prepareText(key);
+
+    if (strlen(key) == 0) {
+        printf("Keyword must contain letters.\n");
+        return 1;
+    }
+
+    if (choice == 1) {
+        autokeyEncrypt(text, key, result);
+        printf("Encrypted Text: %s\n", result);
+    } else if (choice == 2) {
+        autokeyDecrypt(text, key, result);
+        printf("Decrypted Text: %s\n", result);
+    } else {
+        printf("Invalid choice.\n");
+        return 1;
+    }
+
+    return 0;
+}
