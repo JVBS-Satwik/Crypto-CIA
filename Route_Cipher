@@ -1,0 +1,166 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <math.h>
+
+// Function to remove non-alphabetic characters and convert to uppercase
+void prepareText(char *text) {
+    int i, j = 0;
+    for (i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            text[j++] = toupper(text[i]);
+        }
+    }
+    text[j] = '\0';
+}
+
+// Function to encrypt using route cipher
+void routeEncrypt(char plaintext[], int key) {
+    prepareText(plaintext);
+    int len = strlen(plaintext);
+    
+    // Calculate grid dimensions
+    int rows = key;
+    int cols = (int)ceil((double)len / rows);
+    
+    // Fill the grid row-wise
+    char grid[rows][cols];
+    int index = 0;
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            if (index < len) {
+                grid[i][j] = plaintext[index++];
+            } else {
+                grid[i][j] = 'X'; // Padding character
+            }
+        }
+    }
+    
+    // Read the grid in spiral order (clockwise from top-right)
+    index = 0;
+    int top = 0, bottom = rows - 1, left = 0, right = cols - 1;
+    
+    while (top <= bottom && left <= right) {
+        // Top row (left to right)
+        for (int i = left; i <= right; i++) {
+            plaintext[index++] = grid[top][i];
+        }
+        top++;
+        
+        // Right column (top to bottom)
+        for (int i = top; i <= bottom; i++) {
+            plaintext[index++] = grid[i][right];
+        }
+        right--;
+        
+        if (top <= bottom) {
+            // Bottom row (right to left)
+            for (int i = right; i >= left; i--) {
+                plaintext[index++] = grid[bottom][i];
+            }
+            bottom--;
+        }
+        
+        if (left <= right) {
+            // Left column (bottom to top)
+            for (int i = bottom; i >= top; i--) {
+                plaintext[index++] = grid[i][left];
+            }
+            left++;
+        }
+    }
+    plaintext[index] = '\0';
+}
+
+// Function to decrypt using route cipher
+void routeDecrypt(char ciphertext[], int key) {
+    int len = strlen(ciphertext);
+    
+    // Calculate grid dimensions
+    int rows = key;
+    int cols = (int)ceil((double)len / rows);
+    
+    // Create empty grid
+    char grid[rows][cols];
+    
+    // Fill the grid in spiral order (clockwise from top-right)
+    int index = 0;
+    int top = 0, bottom = rows - 1, left = 0, right = cols - 1;
+    
+    while (top <= bottom && left <= right) {
+        // Top row (left to right)
+        for (int i = left; i <= right; i++) {
+            grid[top][i] = ciphertext[index++];
+        }
+        top++;
+        
+        // Right column (top to bottom)
+        for (int i = top; i <= bottom; i++) {
+            grid[i][right] = ciphertext[index++];
+        }
+        right--;
+        
+        if (top <= bottom) {
+            // Bottom row (right to left)
+            for (int i = right; i >= left; i--) {
+                grid[bottom][i] = ciphertext[index++];
+            }
+            bottom--;
+        }
+        
+        if (left <= right) {
+            // Left column (bottom to top)
+            for (int i = bottom; i >= top; i--) {
+                grid[i][left] = ciphertext[index++];
+            }
+            left++;
+        }
+    }
+    
+    // Read the grid row-wise
+    index = 0;
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            ciphertext[index++] = grid[i][j];
+        }
+    }
+    ciphertext[index] = '\0';
+}
+
+int main() {
+    char text[1000];
+    int key, choice;
+    
+    printf("Route Cipher\n");
+    printf("1. Encrypt\n");
+    printf("2. Decrypt\n");
+    printf("Enter your choice (1 or 2): ");
+    scanf("%d", &choice);
+    getchar(); // Consume the newline
+    
+    printf("Enter text: ");
+    fgets(text, sizeof(text), stdin);
+    // Remove newline character if present
+    text[strcspn(text, "\n")] = '\0';
+    
+    printf("Enter key (number of rows): ");
+    scanf("%d", &key);
+    
+    if (key <= 0) {
+        printf("Error: Key must be a positive integer.\n");
+        return 1;
+    }
+    
+    if (choice == 1) {
+        routeEncrypt(text, key);
+        printf("Encrypted text: %s\n", text);
+    } else if (choice == 2) {
+        routeDecrypt(text, key);
+        printf("Decrypted text: %s\n", text);
+    } else {
+        printf("Invalid choice.\n");
+        return 1;
+    }
+    
+    return 0;
+}
