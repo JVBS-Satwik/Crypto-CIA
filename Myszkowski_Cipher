@@ -1,0 +1,179 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+// Prepare text: remove non-alphabetic characters and convert to uppercase
+void prepareText(char *text) {
+    int i, j = 0;
+    for (i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            text[j++] = toupper(text[i]);
+        }
+    }
+    text[j] = '\0';
+}
+
+// Generate key order array from keyword
+void generateKeyOrder(const char *keyword, int *order) {
+    int len = strlen(keyword);
+    int used[26] = {0};
+    int index = 0;
+
+    // Count frequency of each character to handle repeated characters
+    for (char ch = 'A'; ch <= 'Z'; ch++) {
+        for (int i = 0; i < len; i++) {
+            if (toupper(keyword[i]) == ch) {
+                order[i] = index;
+            }
+        }
+        if (strchr(keyword, ch)) index++;
+    }
+}
+
+// Encrypt using Myszkowski Cipher
+char* myszkowskiEncrypt(char *plaintext, const char *keyword) {
+    prepareText(plaintext);
+    int len = strlen(plaintext);
+    int keyLen = strlen(keyword);
+    int rows = (len + keyLen - 1) / keyLen;
+
+    // Fill matrix
+    char **matrix = (char **)malloc(rows * sizeof(char *));
+    for (int i = 0; i < rows; i++) {
+        matrix[i] = (char *)malloc(keyLen * sizeof(char));
+        for (int j = 0; j < keyLen; j++) {
+            int idx = i * keyLen + j;
+            matrix[i][j] = (idx < len) ? plaintext[idx] : 'X';
+        }
+    }
+
+    // Generate key order
+    int *order = (int *)malloc(keyLen * sizeof(int));
+    generateKeyOrder(keyword, order);
+
+    // Output ciphertext column-wise by key order
+    char *ciphertext = (char *)malloc(rows * keyLen + 1);
+    int pos = 0;
+    for (int current = 0; current < keyLen; current++) {
+        for (int col = 0; col < keyLen; col++) {
+            if (order[col] == current) {
+                for (int row = 0; row < rows; row++) {
+                    ciphertext[pos++] = matrix[row][col];
+                }
+            }
+        }
+    }
+    ciphertext[pos] = '\0';
+
+    // Cleanup
+    for (int i = 0; i < rows; i++) {
+        free(matrix[i]);
+    }
+    free(matrix);
+    free(order);
+
+    return ciphertext;
+}
+
+// Decrypt using Myszkowski Cipher
+char* myszkowskiDecrypt(char *ciphertext, const char *keyword) {
+    int len = strlen(ciphertext);
+    int keyLen = strlen(keyword);
+    int rows = (len + keyLen - 1) / keyLen;
+
+    // Generate key order
+    int *order = (int *)malloc(keyLen * sizeof(int));
+    generateKeyOrder(keyword, order);
+
+    // Prepare reverse key map
+    int *colCount = (int *)calloc(keyLen, sizeof(int));
+    int orderMax = 0;
+    for (int i = 0; i < keyLen; i++) {
+        if (order[i] > orderMax) orderMax = order[i];
+    }
+
+    for (int current = 0; current <= orderMax; current++) {
+        for (int i = 0; i < keyLen; i++) {
+            if (order[i] == current) {
+                colCount[i] = rows;
+            }
+        }
+    }
+
+    // Allocate matrix
+    char **matrix = (char **)malloc(rows * sizeof(char *));
+    for (int i = 0; i < rows; i++) {
+        matrix[i] = (char *)malloc(keyLen * sizeof(char));
+    }
+
+    // Fill columns with ciphertext
+    int index = 0;
+    for (int current = 0; current <= orderMax; current++) {
+        for (int col = 0; col < keyLen; col++) {
+            if (order[col] == current) {
+                for (int row = 0; row < rows; row++) {
+                    if (index < len) {
+                        matrix[row][col] = ciphertext[index++];
+                    }
+                }
+            }
+        }
+    }
+
+    // Read matrix row-wise to get plaintext
+    char *plaintext = (char *)malloc(len + 1);
+    index = 0;
+    for (int row = 0; row < rows; row++) {
+        for (int col = 0; col < keyLen; col++) {
+            plaintext[index++] = matrix[row][col];
+        }
+    }
+    plaintext[len] = '\0';
+
+    // Cleanup
+    for (int i = 0; i < rows; i++) {
+        free(matrix[i]);
+    }
+    free(matrix);
+    free(order);
+    free(colCount);
+
+    return plaintext;
+}
+
+int main() {
+    char text[1000];
+    char keyword[100];
+    int choice;
+
+    printf("Myszkowski Cipher\n");
+    printf("1. Encrypt\n");
+    printf("2. Decrypt\n");
+    printf("Enter your choice (1 or 2): ");
+    scanf("%d", &choice);
+    getchar(); // Consume newline
+
+    printf("Enter text: ");
+    fgets(text, sizeof(text), stdin);
+    text[strcspn(text, "\n")] = '\0';
+
+    printf("Enter keyword: ");
+    fgets(keyword, sizeof(keyword), stdin);
+    keyword[strcspn(keyword, "\n")] = '\0';
+
+    char *result;
+    if (choice == 1) {
+        result = myszkowskiEncrypt(text, keyword);
+        printf("Encrypted text: %s\n", result);
+    } else if (choice == 2) {
+        result = myszkowskiDecrypt(text, keyword);
+        printf("Decrypted text: %s\n", result);
+    } else {
+        printf("Invalid choice.\n");
+        return 1;
+    }
+
+    free(result);
+    return 0;
+}
