@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+// Prepare text: remove non-letters, convert to uppercase
+void prepareText(char *text) {
+    int i, j = 0;
+    for (i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            text[j++] = toupper(text[i]);
+        }
+    }
+    text[j] = '\0';
+}
+
+// Beaufort Cipher (same function for both encryption and decryption)
+void beaufortCipher(char *input, char *key, char *output) {
+    int textLen = strlen(input);
+    int keyLen = strlen(key);
+
+    for (int i = 0; i < textLen; i++) {
+        char keyChar = toupper(key[i % keyLen]);
+        char textChar = toupper(input[i]);
+
+        int keyIndex = keyChar - 'A';
+        int textIndex = textChar - 'A';
+
+        int cipherIndex = (keyIndex - textIndex + 26) % 26;
+        output[i] = cipherIndex + 'A';
+    }
+    output[textLen] = '\0';
+}
+
+int main() {
+    char text[1000];
+    char key[100];
+    char result[1000];
+    int choice;
+
+    printf("Beaufort Cipher\n");
+    printf("1. Encrypt\n");
+    printf("2. Decrypt\n");
+    printf("Enter your choice (1 or 2): ");
+    scanf("%d", &choice);
+    getchar(); // consume newline
+
+    printf("Enter text: ");
+    fgets(text, sizeof(text), stdin);
+    text[strcspn(text, "\n")] = '\0';
+
+    printf("Enter keyword: ");
+    fgets(key, sizeof(key), stdin);
+    key[strcspn(key, "\n")] = '\0';
+
+    prepareText(text);
+    prepareText(key); // ensure key is cleaned too
+
+    if (strlen(key) == 0) {
+        printf("Key must contain at least one letter.\n");
+        return 1;
+    }
+
+    beaufortCipher(text, key, result);
+
+    if (choice == 1) {
+        printf("Encrypted Text: %s\n", result);
+    } else if (choice == 2) {
+        printf("Decrypted Text: %s\n", result); // same function, same result
+    } else {
+        printf("Invalid choice.\n");
+        return 1;
+    }
+
+    return 0;
+}
