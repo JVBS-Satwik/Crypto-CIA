@@ -1,0 +1,69 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+// Prepare text: convert to uppercase and remove non-alphabetic
+void prepareText(char *text) {
+    int i, j = 0;
+    for (i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            text[j++] = toupper(text[i]);
+        }
+    }
+    text[j] = '\0';
+}
+
+// Caesar Encryption
+void caesarEncrypt(char *plaintext, int key, char *ciphertext) {
+    int i;
+    for (i = 0; plaintext[i] != '\0'; i++) {
+        char ch = plaintext[i];
+        ciphertext[i] = ((ch - 'A' + key) % 26 + 26) % 26 + 'A';
+    }
+    ciphertext[i] = '\0';
+}
+
+// Caesar Decryption
+void caesarDecrypt(char *ciphertext, int key, char *plaintext) {
+    int i;
+    for (i = 0; ciphertext[i] != '\0'; i++) {
+        char ch = ciphertext[i];
+        plaintext[i] = ((ch - 'A' - key) % 26 + 26) % 26 + 'A';
+    }
+    plaintext[i] = '\0';
+}
+
+int main() {
+    char text[1000];
+    char result[1000];
+    int key, choice;
+
+    printf("Caesar Cipher\n");
+    printf("1. Encrypt\n");
+    printf("2. Decrypt\n");
+    printf("Enter your choice (1 or 2): ");
+    scanf("%d", &choice);
+    getchar(); // consume newline
+
+    printf("Enter text: ");
+    fgets(text, sizeof(text), stdin);
+    text[strcspn(text, "\n")] = '\0';
+
+    printf("Enter key (shift amount): ");
+    scanf("%d", &key);
+
+    prepareText(text);
+
+    if (choice == 1) {
+        caesarEncrypt(text, key, result);
+        printf("Encrypted Text: %s\n", result);
+    } else if (choice == 2) {
+        caesarDecrypt(text, key, result);
+        printf("Decrypted Text: %s\n", result);
+    } else {
+        printf("Invalid choice.\n");
+        return 1;
+    }
+
+    return 0;
+}
