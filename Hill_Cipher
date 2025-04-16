@@ -1,0 +1,119 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+// Prepare text: remove non-alphabetic characters, convert to uppercase
+void prepareText(char *text) {
+    int i, j = 0;
+    for (i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            text[j++] = toupper(text[i]);
+        }
+    }
+    // Pad with 'X' if odd length
+    if (j % 2 != 0) {
+        text[j++] = 'X';
+    }
+    text[j] = '\0';
+}
+
+// Function to calculate mod 26 inverse of a number
+int modInverse(int a, int m) {
+    a = a % m;
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1) return x;
+    }
+    return -1; // No inverse
+}
+
+// Encrypt 2-letter blocks
+void encryptHill(char *plaintext, int key[2][2], char *ciphertext) {
+    int len = strlen(plaintext);
+    for (int i = 0; i < len; i += 2) {
+        int a = plaintext[i] - 'A';
+        int b = plaintext[i + 1] - 'A';
+
+        int x = (key[0][0] * a + key[0][1] * b) % 26;
+        int y = (key[1][0] * a + key[1][1] * b) % 26;
+
+        ciphertext[i] = x + 'A';
+        ciphertext[i + 1] = y + 'A';
+    }
+    ciphertext[len] = '\0';
+}
+
+// Decrypt 2-letter blocks
+void decryptHill(char *ciphertext, int key[2][2], char *plaintext) {
+    int len = strlen(ciphertext);
+
+    // Find determinant
+    int det = (key[0][0] * key[1][1] - key[0][1] * key[1][0]) % 26;
+    if (det < 0) det += 26;
+
+    int detInv = modInverse(det, 26);
+    if (detInv == -1) {
+        printf("Key matrix is not invertible mod 26.\n");
+        exit(1);
+    }
+
+    // Inverse matrix mod 26
+    int invKey[2][2];
+    invKey[0][0] = (key[1][1] * detInv) % 26;
+    invKey[1][1] = (key[0][0] * detInv) % 26;
+    invKey[0][1] = (-key[0][1] * detInv) % 26;
+    invKey[1][0] = (-key[1][0] * detInv) % 26;
+
+    // Fix negative values
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++)
+            if (invKey[i][j] < 0) invKey[i][j] += 26;
+
+    for (int i = 0; i < len; i += 2) {
+        int a = ciphertext[i] - 'A';
+        int b = ciphertext[i + 1] - 'A';
+
+        int x = (invKey[0][0] * a + invKey[0][1] * b) % 26;
+        int y = (invKey[1][0] * a + invKey[1][1] * b) % 26;
+
+        plaintext[i] = x + 'A';
+        plaintext[i + 1] = y + 'A';
+    }
+    plaintext[len] = '\0';
+}
+
+int main() {
+    char text[1000];
+    int key[2][2];
+    int choice;
+
+    printf("Hill Cipher (2x2 Key Matrix)\n");
+    printf("1. Encrypt\n");
+    printf("2. Decrypt\n");
+    printf("Enter your choice: ");
+    scanf("%d", &choice);
+    getchar(); // consume newline
+
+    printf("Enter text: ");
+    fgets(text, sizeof(text), stdin);
+    text[strcspn(text, "\n")] = '\0';
+
+    printf("Enter 4 integers for 2x2 key matrix (row-wise): ");
+    scanf("%d %d %d %d", &key[0][0], &key[0][1], &key[1][0], &key[1][1]);
+
+    char result[1000];
+    prepareText(text);
+
+    if (choice == 1) {
+        encryptHill(text, key, result);
+        printf("Encrypted Text: %s\n", result);
+    } else if (choice == 2) {
+        decryptHill(text, key, result);
+        printf("Decrypted Text: %s\n", result);
+    } else {
+        printf("Invalid choice.\n");
+        return 1;
+    }
+
+    return 0;
+}
