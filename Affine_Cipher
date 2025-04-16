@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+// Get modular inverse of a modulo m using brute force
+int modInverse(int a, int m) {
+    a = a % m;
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1) return x;
+    }
+    return -1;
+}
+
+// Prepare text: convert to uppercase, remove non-alphabetic
+void prepareText(char *text) {
+    int i, j = 0;
+    for (i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            text[j++] = toupper(text[i]);
+        }
+    }
+    text[j] = '\0';
+}
+
+// Affine Encryption
+void affineEncrypt(char *plaintext, int a, int b, char *ciphertext) {
+    for (int i = 0; plaintext[i] != '\0'; i++) {
+        int x = plaintext[i] - 'A';
+        ciphertext[i] = ((a * x + b) % 26) + 'A';
+    }
+    ciphertext[strlen(plaintext)] = '\0';
+}
+
+// Affine Decryption
+void affineDecrypt(char *ciphertext, int a, int b, char *plaintext) {
+    int a_inv = modInverse(a, 26);
+    if (a_inv == -1) {
+        printf("Error: 'a' (%d) has no modular inverse modulo 26. Choose a coprime value.\n", a);
+        return;
+    }
+
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        int y = ciphertext[i] - 'A';
+        plaintext[i] = ((a_inv * (y - b + 26)) % 26) + 'A';
+    }
+    plaintext[strlen(ciphertext)] = '\0';
+}
+
+int main() {
+    char text[1000];
+    char result[1000];
+    int a, b, choice;
+
+    printf("Affine Cipher\n");
+    printf("1. Encrypt\n");
+    printf("2. Decrypt\n");
+    printf("Enter your choice (1 or 2): ");
+    scanf("%d", &choice);
+    getchar(); // consume newline
+
+    printf("Enter text: ");
+    fgets(text, sizeof(text), stdin);
+    text[strcspn(text, "\n")] = '\0';
+
+    printf("Enter key 'a' (must be coprime with 26): ");
+    scanf("%d", &a);
+    printf("Enter key 'b': ");
+    scanf("%d", &b);
+
+    prepareText(text);
+
+    // Valid coprime check (not mathematically rigorous, but enough)
+    int validA[] = {1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25};
+    int isValid = 0;
+    for (int i = 0; i < 12; i++) {
+        if (a == validA[i]) {
+            isValid = 1;
+            break;
+        }
+    }
+
+    if (!isValid) {
+        printf("Invalid 'a' value. Must be coprime with 26.\n");
+        return 1;
+    }
+
+    if (choice == 1) {
+        affineEncrypt(text, a, b, result);
+        printf("Encrypted Text: %s\n", result);
+    } else if (choice == 2) {
+        affineDecrypt(text, a, b, result);
+        printf("Decrypted Text: %s\n", result);
+    } else {
+        printf("Invalid choice.\n");
+        return 1;
+    }
+
+    return 0;
+}
